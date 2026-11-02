@@ -1,0 +1,1 @@
+rd_("f[1,\"\"]A`[10,\"core::any\"]Am[5,\"alloc::vec\",\"alloc::vec\"]f[0,\"\"]3Ad[10,\"core::convert\"]04444Ac[10,\"core::borrow\"]Ba[6,\"core::result\",\"core::result\"]Bc[5,\"alloc::string\",\"alloc::string\"]Ak[5,\"core::any\",\"core::any\"]44B`[10,\"lolcompiler\",\"lolcompiler\"]49Ao[5,\"lolcompiler\",\"lolcompiler\"]f[3,\"\"]22")

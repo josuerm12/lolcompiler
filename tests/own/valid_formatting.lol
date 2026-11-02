@@ -1,0 +1,6 @@
+#HAI
+#MAEK PARAGRAF
+Hello #GIMMEH BOLD world #OIC#NEWLINE
+#GIMMEH LINX example.com #OIC
+#MKAY
+#KBYE
