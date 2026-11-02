@@ -1,0 +1,49 @@
+Test cases will be graded as follows:
+	2 points for correct output
+	1-2 points for mostly correct output
+	0-1 points for partially correct output
+	0 points for no output / can not run
+
+Test1.txt
+A simple test case with a .txt extension to test that your
+compiler only accepts .lol files.
+
+Test2.lol
+A simple test case containing only locode annotations (i.e., 
+no variable tags) to test that the compiler works properly for a
+simple case.  
+
+Test3.lol
+A simple test case containing only locode annotations (i.e., 
+no variable tags) with some annotations in lower case to test 
+that the compiler is not case sensitive. Also includes bold text. 
+
+Test4.lol
+A simple test case containing invalid locode annotations to
+test that the lexical analyzer recognizes unknown lexemes and
+reports them as lexical errors. Should not produce html.
+
+Test5.lol
+A simple test case with a syntax error. Should report error and 
+not generate a test case. 
+
+Test6.lol
+A simple test case containing a single variable to resolve.
+
+Test7.lol
+A test case to with an undefined variable to test that the 
+compiler detects the use of an unknown variable. Should
+report a static semantic error and not generate HTML.
+
+Test8.lol 
+A test case to test the static variable scoping.
+
+Test9.lol
+A test case using multiple variable definition and use tags to 
+ensure that the parser can handle multiple variables.
+
+Test10.lol
+A test case with a link. 
+
+
+
