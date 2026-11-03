@@ -82,6 +82,17 @@ impl LolCompiler {
             .unwrap_or("")
     }
 
+    fn source_peek(&self) -> Option<char> {
+        self.source.chars().nth(self.cursor)
+    }
+
+    fn finish_trait_call(result: Result<(), String>) {
+        if let Err(error) = result {
+            eprintln!("Compilation error: {error}");
+            std::process::exit(1);
+        }
+    }
+
     fn advance(&mut self) {
         if self.index < self.tokens.len() {
             self.current = self.tokens[self.index].clone();
@@ -380,71 +391,66 @@ impl LolCompiler {
         self.token_lines.clear();
         self.cursor = 0;
         self.line = 1;
-        let chars: Vec<char> = self.source.chars().collect();
-        let mut text = String::new();
+        self.token_buffer.clear();
         let mut text_line = 1;
 
-        while self.cursor < chars.len() {
-            let ch = chars[self.cursor];
+        while let Some(ch) = self.source_peek() {
             if ch != '#' {
-                if text.is_empty() {
+                if self.token_buffer.is_empty() {
                     text_line = self.line;
                 }
-                text.push(ch);
+                let next = self.get_char();
+                self.add_char(next);
                 if ch == '\n' {
                     self.line += 1;
                 }
-                self.cursor += 1;
                 continue;
             }
 
-            if !text.trim().is_empty() {
-                self.tokens.push(std::mem::take(&mut text));
+            if !self.token_buffer.trim().is_empty() {
+                self.tokens.push(std::mem::take(&mut self.token_buffer));
                 self.token_lines.push(text_line);
             } else {
-                text.clear();
+                self.token_buffer.clear();
             }
 
             let tag_line = self.line;
-            let start = self.cursor;
-            self.cursor += 1;
-            while self.cursor < chars.len()
-                && !chars[self.cursor].is_whitespace()
-                && chars[self.cursor] != '#'
-            {
-                self.cursor += 1;
+            let next = self.get_char();
+            self.add_char(next);
+            while let Some(next) = self.source_peek() {
+                if next.is_whitespace() || next == '#' {
+                    break;
+                }
+                let next = self.get_char();
+                self.add_char(next);
             }
-            let tag = chars[start..self.cursor]
-                .iter()
-                .collect::<String>()
-                .to_ascii_uppercase();
+            let tag = std::mem::take(&mut self.token_buffer).to_ascii_uppercase();
             if !self.lookup(&tag) {
                 return self.fail(format!("lexical error: unknown annotation '{}'", tag));
             }
             self.tokens.push(tag.clone());
             self.token_lines.push(tag_line);
-
             if tag == "#MAEK" || tag == "#GIMMEH" {
-                while self.cursor < chars.len() && chars[self.cursor].is_whitespace() {
-                    if chars[self.cursor] == '\n' {
+                while let Some(next) = self.source_peek() {
+                    if !next.is_whitespace() {
+                        break;
+                    }
+                    if next == '\n' {
                         self.line += 1;
                     }
-                    self.cursor += 1;
+                    self.get_char();
                 }
-                let keyword_start = self.cursor;
-                while self.cursor < chars.len()
-                    && !chars[self.cursor].is_whitespace()
-                    && chars[self.cursor] != '#'
-                {
-                    self.cursor += 1;
-                }
-                if keyword_start == self.cursor {
+                if self.source_peek().is_none() {
                     return self.fail(format!("lexical error: missing keyword after {}", tag));
                 }
-                let keyword = chars[keyword_start..self.cursor]
-                    .iter()
-                    .collect::<String>()
-                    .to_ascii_uppercase();
+                while let Some(next) = self.source_peek() {
+                    if next.is_whitespace() || next == '#' {
+                        break;
+                    }
+                    let next = self.get_char();
+                    self.add_char(next);
+                }
+                let keyword = std::mem::take(&mut self.token_buffer).to_ascii_uppercase();
                 let valid = if tag == "#MAEK" {
                     ["HEAD", "PARAGRAF", "LIST"].contains(&keyword.as_str())
                 } else {
@@ -460,8 +466,8 @@ impl LolCompiler {
                 self.token_lines.push(tag_line);
             }
         }
-        if !text.trim().is_empty() {
-            self.tokens.push(text);
+        if !self.token_buffer.trim().is_empty() {
+            self.tokens.push(std::mem::take(&mut self.token_buffer));
             self.token_lines.push(text_line);
         }
         Ok(())
@@ -530,52 +536,52 @@ impl LexicalAnalyzer for LolCompiler {
 
 impl SyntaxAnalyzer for LolCompiler {
     fn parse_lolcode(&mut self) {
-        let _ = self.parse_result();
+        Self::finish_trait_call(self.parse_result());
     }
     fn parse_head(&mut self) {
-        let _ = self.head_result();
+        Self::finish_trait_call(self.head_result());
     }
     fn parse_title(&mut self) {
-        let _ = self.title_result();
+        Self::finish_trait_call(self.title_result());
     }
     fn parse_comment(&mut self) {
-        let _ = self.comment_result();
+        Self::finish_trait_call(self.comment_result());
     }
     fn parse_body(&mut self) {
-        let _ = self.body_result();
+        Self::finish_trait_call(self.body_result());
     }
     fn parse_paragraph(&mut self) {
-        let _ = self.paragraph_result();
+        Self::finish_trait_call(self.paragraph_result());
     }
     fn parse_inner_paragraph(&mut self) {
-        let _ = self.inline_result("#MKAY", true);
+        Self::finish_trait_call(self.inline_result("#MKAY", true));
     }
     fn parse_inner_text(&mut self) {
-        let _ = self.inline_result("#MKAY", true);
+        Self::finish_trait_call(self.inline_result("#MKAY", true));
     }
     fn parse_variable_define(&mut self) {
-        let _ = self.define_variable_result();
+        Self::finish_trait_call(self.define_variable_result());
     }
     fn parse_variable_use(&mut self) {
-        let _ = self.variable_use_result();
+        Self::finish_trait_call(self.variable_use_result());
     }
     fn parse_bold(&mut self) {
-        let _ = self.bold_result();
+        Self::finish_trait_call(self.bold_result());
     }
     fn parse_list(&mut self) {
-        let _ = self.list_result();
+        Self::finish_trait_call(self.list_result());
     }
     fn parse_list_items(&mut self) {
-        let _ = self.item_result();
+        Self::finish_trait_call(self.item_result());
     }
     fn parse_inner_list(&mut self) {
-        let _ = self.inline_result("#OIC", false);
+        Self::finish_trait_call(self.inline_result("#OIC", false));
     }
     fn parse_link(&mut self) {
-        let _ = self.link_result();
+        Self::finish_trait_call(self.link_result());
     }
     fn parse_newline(&mut self) {
-        let _ = self.newline_result();
+        Self::finish_trait_call(self.newline_result());
     }
     fn parse_text(&mut self) {
         self.output.push_str(&self.current);
@@ -586,26 +592,32 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     if args.len() != 2 {
         eprintln!("Usage: lolcompiler input.lol");
-        return;
+        std::process::exit(1);
     }
     let input = Path::new(&args[1]);
     if input.extension().and_then(|ext| ext.to_str()) != Some("lol") {
         eprintln!("Usage error: input file must end in .lol");
-        return;
+        std::process::exit(1);
     }
     let source = match fs::read_to_string(input) {
         Ok(source) => source,
         Err(error) => {
             eprintln!("Could not read '{}': {error}", input.display());
-            return;
+            std::process::exit(1);
         }
     };
+    let output_path = input.with_extension("html");
+    if output_path.exists()
+        && let Err(error) = fs::remove_file(&output_path)
+    {
+        eprintln!("Could not replace '{}': {error}", output_path.display());
+        std::process::exit(1);
+    }
     let mut compiler = LolCompiler::new();
     compiler.compile(&source);
-    let output_path = input.with_extension("html");
     if let Err(error) = fs::write(&output_path, &compiler.output) {
         eprintln!("Could not write '{}': {error}", output_path.display());
-        return;
+        std::process::exit(1);
     }
     let _ = Command::new("open").arg(output_path).status();
 }
@@ -683,5 +695,23 @@ After: #GIMMEH VAR name #OIC
         assert!(nested.contains("paragraphs cannot be nested"));
         let empty_list = compile_for_test("#HAI\n#MAEK LIST\n#MKAY\n#KBYE").unwrap_err();
         assert!(empty_list.contains("must contain at least one item"));
+    }
+
+    #[test]
+    fn exercises_lexer_and_compiler_trait_methods() {
+        let mut compiler = LolCompiler::new();
+        compiler.source = "abc".to_string();
+        assert_eq!(compiler.get_char(), 'a');
+        compiler.add_char('b');
+        assert_eq!(compiler.token_buffer, "b");
+        assert!(compiler.lookup("#hai"));
+        assert!(!compiler.lookup("#HEY"));
+
+        compiler.tokens = vec!["first".to_string(), "second".to_string()];
+        compiler.token_lines = vec![1, 1];
+        assert_eq!(compiler.next_token(), "first");
+        assert_eq!(compiler.current_token(), "first");
+        compiler.set_current_token("changed".to_string());
+        assert_eq!(compiler.current_token(), "changed");
     }
 }
